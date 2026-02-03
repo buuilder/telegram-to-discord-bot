@@ -1,40 +1,74 @@
-import { Client, GatewayIntentBits, TextChannel } from "discord.js";
+import { Client, GatewayIntentBits } from "discord.js";
 import TelegramBot from "node-telegram-bot-api";
 
-// Variabili ambiente
+// ===== VARIABILI AMBIENTE =====
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+if (!DISCORD_TOKEN || !DISCORD_CHANNEL_ID || !TELEGRAM_TOKEN) {
+  console.error("❌ Variabili ambiente mancanti");
+  process.exit(1);
+}
+
+// ===== DISCORD =====
+const discordClient = new Client({
+  intents: [GatewayIntentBits.Guilds]
 });
 
-// Bot Telegram
+discordClient.once("ready", () => {
+  console.log(`🤖 Discord connesso come ${discordClient.user.tag}`);
+});
+
+// ===== TELEGRAM =====
 const telegramBot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+console.log("🤖 Telegram bot avviato");
 
-client.once("ready", () => {
-  console.log(`🤖 Discord pronto come ${client.user.tag}`);
-});
-
-// Inoltra i messaggi da Telegram a Discord
+// ===== TELEGRAM → DISCORD =====
 telegramBot.on("message", async (msg) => {
-  if (!msg.text) return; // ignora messaggi vuoti
-
-  const discordChannel = await client.channels.fetch(DISCORD_CHANNEL_ID);
-  if (!discordChannel || !(discordChannel instanceof TextChannel)) return;
-
-  const text = `**${msg.from.first_name}**\n${msg.text}`; // grassetto + a capo
-
   try {
-    discordChannel.send(text);
+    if (msg.from?.is_bot) return;
+
+    const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
+    if (!channel) return;
+
+    const name = msg.from.first_name || "Utente";
+
+    // 📸 FOTO
+    if (msg.photo) {
+      const photo = msg.photo[msg.photo.length - 1];
+      const file = await telegramBot.getFile(photo.file_id);
+      const url = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
+
+      await channel.send({
+        content: `**${name}**\n${msg.caption || ""}`,
+        files: [url]
+      });
+      return;
+    }
+
+    // 📎 FILE (PDF, ZIP, DOC, VIDEO, AUDIO...)
+    if (msg.document || msg.video || msg.audio) {
+      const fileData = msg.document || msg.video || msg.audio;
+      const file = await telegramBot.getFile(fileData.file_id);
+      const url = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
+
+      await channel.send({
+        content: `**${name}**\n${msg.caption || ""}`,
+        files: [url]
+      });
+      return;
+    }
+
+    // 📝 SOLO TESTO
+    if (msg.text) {
+      await channel.send(`**${name}**\n${msg.text}`);
+    }
+
   } catch (err) {
-    console.error("Errore invio Discord:", err);
+    console.error("❌ Errore Telegram → Discord:", err);
   }
 });
 
-client.login(DISCORD_TOKEN);
+// ===== LOGIN =====
+discordClient.login(DISCORD_TOKEN);
