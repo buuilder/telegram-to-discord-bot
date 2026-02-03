@@ -1,0 +1,13 @@
+{
+  "name": "telegram-discord-bot",
+  "version": "1.0.0",
+  "main": "telegram-to-discord.js",
+  "type": "module",
+  "scripts": {
+    "start": "node telegram-to-discord.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "node-telegram-bot-api": "^0.61.0"
+  }
+}
