@@ -1,8 +1,9 @@
 import TelegramBot from "node-telegram-bot-api";
 import fetch from "node-fetch";
 
-console.log("🚀 Deploy Telegram → Discord (avatar)");
+console.log("🚀 Telegram → Discord (avatar + formato pulito)");
 
+// ===== Variabili =====
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
@@ -11,18 +12,19 @@ if (!TELEGRAM_TOKEN || !DISCORD_WEBHOOK_URL) {
   process.exit(1);
 }
 
+// ===== Bot Telegram =====
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
-
 console.log("🤖 Telegram bot avviato");
 
+// ===== Handler messaggi =====
 bot.on("message", async (msg) => {
   try {
-    if (msg.from?.is_bot) return;
+    if (msg.from?.is_bot) return; // ignora bot
 
-    const name = msg.from.first_name || "Utente";
+    const tgName = msg.from.first_name || "Utente";
     let avatarUrl = null;
 
-    // 🖼️ PRENDI AVATAR TELEGRAM
+    // 🔹 Prendi avatar Telegram
     const photos = await bot.getUserProfilePhotos(msg.from.id, { limit: 1 });
     if (photos.total_count > 0) {
       const photo = photos.photos[0][photos.photos[0].length - 1];
@@ -30,65 +32,50 @@ bot.on("message", async (msg) => {
       avatarUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
     }
 
+    // 🔹 Gestione reply
     let content = "";
-
-    // 🔁 REPLY (citazione)
     if (msg.reply_to_message) {
       const r = msg.reply_to_message;
       const rName = r.from?.first_name || "Utente";
       const rText = r.text || r.caption || "[media]";
-      content += `> **${rName}**: ${rText}\n\n`;
+      content += `> ${rName}: ${rText}\n\n`;
     }
 
-    // 📝 TESTO
+    // 🔹 Testo semplice
     if (msg.text) {
       content += msg.text;
     }
 
-    // 📸 FOTO
-    if (msg.photo) {
-      const photo = msg.photo[msg.photo.length - 1];
-      const file = await bot.getFile(photo.file_id);
-      const imageUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
-
-      await fetch(DISCORD_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: name,
-          avatar_url: avatarUrl,
-          content: content || "",
-          embeds: [
-            {
-              image: { url: imageUrl }
-            }
-          ]
-        })
-      });
-      return;
+    // 🔹 Foto o file
+    if (msg.photo || msg.document || msg.video || msg.audio) {
+      let fileUrl = null;
+      if (msg.photo) {
+        const photo = msg.photo[msg.photo.length - 1];
+        const file = await bot.getFile(photo.file_id);
+        fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
+      } else {
+        const f = msg.document || msg.video || msg.audio;
+        const file = await bot.getFile(f.file_id);
+        fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
+      }
+      if (fileUrl) {
+        content += `\n📎 ${fileUrl}`;
+      }
     }
 
-    // 📎 FILE (pdf, video, audio, zip…)
-    if (msg.document || msg.video || msg.audio) {
-      const f = msg.document || msg.video || msg.audio;
-      const file = await bot.getFile(f.file_id);
-      const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
+    // 🔹 Formato finale
+    const finalMessage = `Messaggio da Telegram\n${tgName}\n${content}`;
 
-      content += `\n📎 ${fileUrl}`;
-    }
-
-    // INVIO FINALE
-    if (content) {
-      await fetch(DISCORD_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: name,
-          avatar_url: avatarUrl,
-          content
-        })
-      });
-    }
+    // 🔹 Invia a Discord tramite webhook
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: tgName,       // nome utente Telegram
+        avatar_url: avatarUrl,  // avatar Telegram
+        content: finalMessage
+      })
+    });
 
   } catch (err) {
     console.error("❌ Errore Telegram → Discord:", err);
