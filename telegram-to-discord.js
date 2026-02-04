@@ -1,7 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import fetch from "node-fetch";
 
-console.log("🚀 Telegram → Discord (avatar + formato pulito)");
+console.log("🚀 Telegram → Discord (formato finale con avatar e nome in grassetto)");
 
 // ===== Variabili =====
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -19,7 +19,7 @@ console.log("🤖 Telegram bot avviato");
 // ===== Handler messaggi =====
 bot.on("message", async (msg) => {
   try {
-    if (msg.from?.is_bot) return; // ignora bot
+    if (msg.from?.is_bot) return;
 
     const tgName = msg.from.first_name || "Utente";
     let avatarUrl = null;
@@ -41,7 +41,7 @@ bot.on("message", async (msg) => {
       content += `> ${rName}: ${rText}\n\n`;
     }
 
-    // 🔹 Testo semplice
+    // 🔹 Testo principale
     if (msg.text) {
       content += msg.text;
     }
@@ -63,15 +63,15 @@ bot.on("message", async (msg) => {
       }
     }
 
-    // 🔹 Formato finale
-    const finalMessage = `Messaggio da Telegram\n${tgName}\n${content}`;
+    // 🔹 Formato finale corretto
+    const finalMessage = `Messaggio da Telegram\n**${tgName}**\n${content}`;
 
     // 🔹 Invia a Discord tramite webhook
     await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: tgName,       // nome utente Telegram
+        username: tgName,       // nome Telegram per avatar
         avatar_url: avatarUrl,  // avatar Telegram
         content: finalMessage
       })
