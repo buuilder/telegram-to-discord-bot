@@ -1,7 +1,10 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import TelegramBot from "node-telegram-bot-api";
 
-// ===== VARIABILI AMBIENTE =====
+// ===== RIGA INNOCUA (per trigger deploy) =====
+console.log("🚀 Deploy Telegram → Discord");
+
+// ===== VARIABILI =====
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -47,7 +50,7 @@ telegramBot.on("message", async (msg) => {
       return;
     }
 
-    // 📎 FILE (PDF, ZIP, DOC, VIDEO, AUDIO...)
+    // 📎 FILE
     if (msg.document || msg.video || msg.audio) {
       const fileData = msg.document || msg.video || msg.audio;
       const file = await telegramBot.getFile(fileData.file_id);
@@ -60,7 +63,7 @@ telegramBot.on("message", async (msg) => {
       return;
     }
 
-    // 📝 SOLO TESTO
+    // 📝 TESTO
     if (msg.text) {
       await channel.send(`**${name}**\n${msg.text}`);
     }
