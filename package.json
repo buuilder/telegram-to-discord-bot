@@ -1,10 +1,10 @@
 {
-  "name": "telegram-discord-bot",
+  "name": "telegram-discord-avatar-clean",
   "version": "1.0.0",
-  "main": "telegram-to-discord.js",
   "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node telegram-to-discord.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.61.0",
