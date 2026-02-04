@@ -1,7 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import fetch from "node-fetch";
 
-console.log("🚀 Telegram → Discord (formato finale con avatar e nome in grassetto)");
+console.log("🚀 Telegram → Discord (formato corretto con avatar)");
 
 // ===== Variabili =====
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -32,8 +32,10 @@ bot.on("message", async (msg) => {
       avatarUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
     }
 
-    // 🔹 Gestione reply
+    // 🔹 Contenuto messaggio
     let content = "";
+
+    // Reply
     if (msg.reply_to_message) {
       const r = msg.reply_to_message;
       const rName = r.from?.first_name || "Utente";
@@ -41,12 +43,10 @@ bot.on("message", async (msg) => {
       content += `> ${rName}: ${rText}\n\n`;
     }
 
-    // 🔹 Testo principale
-    if (msg.text) {
-      content += msg.text;
-    }
+    // Testo principale
+    if (msg.text) content += msg.text;
 
-    // 🔹 Foto o file
+    // File o foto
     if (msg.photo || msg.document || msg.video || msg.audio) {
       let fileUrl = null;
       if (msg.photo) {
@@ -58,21 +58,19 @@ bot.on("message", async (msg) => {
         const file = await bot.getFile(f.file_id);
         fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
       }
-      if (fileUrl) {
-        content += `\n📎 ${fileUrl}`;
-      }
+      if (fileUrl) content += `\n📎 ${fileUrl}`;
     }
 
-    // 🔹 Formato finale corretto
+    // 🔹 Formato finale
     const finalMessage = `Messaggio da Telegram\n**${tgName}**\n${content}`;
 
-    // 🔹 Invia a Discord tramite webhook
+    // 🔹 Invia a Discord
     await fetch(DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: tgName,       // nome Telegram per avatar
-        avatar_url: avatarUrl,  // avatar Telegram
+        username: tgName,
+        avatar_url: avatarUrl,
         content: finalMessage
       })
     });
